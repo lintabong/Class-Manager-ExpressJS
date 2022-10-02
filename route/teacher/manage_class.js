@@ -54,23 +54,25 @@ manageClass.post('/api/teacher/addclass', teacherAuth, async function(req, res){
 
 
     // check duplicate title
-    var same_title = false
+    var same_title   = false
     await get(ref(db, 'class')).then((snap) => {
 
         const class_list = snap.val()
 
         for (const address in class_list){
+
             const db_title   = eval('class_list.' + address + '.title') 
             const db_teacher = eval('class_list.' + address + '.teacher') 
 
             if (db_title == title && db_teacher == teacher){
+
                 same_title = true
+
             }
-            
         }
     })
 
-    if (same_title == true){
+    if (same_title){
         res.status(400).send({
             "code"   : 400,
             "status" : "bad request",
@@ -101,7 +103,8 @@ manageClass.post('/api/teacher/addclass', teacherAuth, async function(req, res){
             "status" : "Internal Server Error",
             "data"   : {
                 "message" : [
-                    "cant add new class"
+                    "cant add new class",
+                    "not connected to database"
                 ]
             }
         })
@@ -116,6 +119,8 @@ manageClass.post('/api/teacher/addclass', teacherAuth, async function(req, res){
                 "message" : value
             }
         })
+
+        return
     }
 })
 
@@ -149,9 +154,7 @@ manageClass.get('/api/teacher/listclass', teacherAuth, async function(req, res){
             "status" : "Not Found",
             "data"   : {
                 "message" : [
-                    "cant find title of a class",
-                    "check title",
-                    "try relogin"
+                    "teacher dont have class"
                 ]
             }
         })
@@ -182,11 +185,49 @@ manageClass.post('/api/teacher/updateclass/:title', teacherAuth, async function(
     const teacher          = getTeacherName(req.cookies.jwt)
     var found_title        = false
 
+
+    // check duplicate title
+    var same_title         = false
+    await get(ref(db, 'class')).then((snap) => {
+    
+        const class_list = snap.val()
+    
+        for (const address in class_list){
+
+            const db_title   = eval('class_list.' + address + '.title') 
+            const db_teacher = eval('class_list.' + address + '.teacher') 
+    
+            if (db_title == title_update && db_teacher == teacher){
+
+                same_title = true
+
+            }
+        }
+    })
+    
+    if (same_title){
+        res.status(400).send({
+            "code"   : 400,
+            "status" : "bad request",
+            "data"   : {
+                "message" : [
+                    "find same title",
+                    "title must unique"
+                ]
+            }
+        })
+    
+        return
+    }
+
+
+    // find and update a class
     await get(ref(db, 'class')).then((snap) => {
 
         const class_list = snap.val()
 
         for (const address in class_list){
+
             const db_teacher = eval('class_list.' + address + '.teacher')
             const db_title   = eval('class_list.' + address + '.title')
 
@@ -195,7 +236,9 @@ manageClass.post('/api/teacher/updateclass/:title', teacherAuth, async function(
                 found_title = true
 
                 const value = {
+                    "createdAt" : eval('class_list.' + address + '.createdAt'),
                     "students"  : students_update,
+                    "teacher"   : teacher,
                     "title"     : title_update
                 }
             
@@ -224,9 +267,9 @@ manageClass.post('/api/teacher/updateclass/:title', teacherAuth, async function(
                             "value" : eval('class_list.' + address)
                         }
                     })
+
                     return
                 }
-
             }
         }
     })
@@ -247,20 +290,23 @@ manageClass.post('/api/teacher/updateclass/:title', teacherAuth, async function(
     }
 })
 
+
 // GET A SINGLE CLASS
 manageClass.get('/api/teacher/class/:title', teacherAuth, async function(req, res){
 
     // get variables
-    const title   = req.params.title
-    const teacher = getTeacherName(req.cookies.jwt)
+    const title     = req.params.title
+    const teacher   = getTeacherName(req.cookies.jwt)
 
+
+    // finding title
     var found_title = false
-
     await get(ref(db, 'class')).then((snap) => {
 
         const class_list = snap.val()
 
         for (const address in class_list){
+
             const db_teacher = eval('class_list.' + address + '.teacher')
             const db_title   = eval('class_list.' + address + '.title')
 
@@ -289,7 +335,7 @@ manageClass.get('/api/teacher/class/:title', teacherAuth, async function(req, re
                 "message" : [
                     "cant find title"
                 ]
-                }
+            }
         })
 
         return
@@ -310,12 +356,14 @@ manageClass.post('/api/teacher/deleteclass/:title', teacherAuth, async function(
         const class_list = snap.val()
     
         for (const address in class_list){
+
             const db_teacher = eval('class_list.' + address + '.teacher')
             const db_title   = eval('class_list.' + address + '.title')
 
             if (db_title == title && db_teacher == teacher){
                 
                 found_title = true
+
                 const delete_class = set(ref(db, 'class/' + address), null)
 
                 if(!delete_class){
@@ -359,6 +407,8 @@ manageClass.post('/api/teacher/deleteclass/:title', teacherAuth, async function(
                 ]
             }
         })
+        
+        return
     }
 })
 
