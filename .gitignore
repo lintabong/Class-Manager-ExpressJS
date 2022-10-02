@@ -1,0 +1,14 @@
+controllers
+firebaseConfig
+functions
+node_modules
+middleware
+route
+.env
+.gitignore
+.vscode
+main.js
+package-lock.json
+package.json
+requirement.txt
+try.js
