@@ -1,52 +1,31 @@
 // init express.js
 const express       = require('express')
-const { verify }    = require('jsonwebtoken')
 const dotenv        = require('dotenv')
 
 dotenv.config()
 
 // init db
-const { initializeApp } = require('firebase/app')
-const { getDatabase, ref, set, get, remove } = require('firebase/database')
-
-const firebase_config = require('../../firebaseConfig/config')
+const { initializeApp }              = require('firebase/app')
+const { getDatabase, ref, set, get } = require('firebase/database')
+const firebase_config                = require('../../firebaseConfig/config')
 
 initializeApp(firebase_config)
-const db = getDatabase();
+const db = getDatabase()
 
 // include functions
-const { randomStr }     = require('../../functions/random_str')
-const { teacherAuth }   = require('../../middleware/jwt_oauth')
+const { randomStr }      = require('./get_random_str')
+const { getTeacherName } = require('./get_teacher_name')
+const { teacherAuth }    = require('../../middleware/jwt_oauth')
 
-// main route
+
+// MAIN
 var manageClass = express()
-
-function getTeacherName(jwt_token){
-    if (!jwt_token){
-        res.status(400).send({
-            "code"   : 400,
-            "status" : "bad request",
-            "data"   : {
-                "message" : [
-                    "cant get jwt token from cookie",
-                    "need to log in"
-                ]
-            }
-        })
-
-        return 
-    }
-
-    return verify(jwt_token, process.env.JWT_SECRET_KEY).username
-}
 
 
 // ADD NEW CLASS
 manageClass.post('/api/teacher/addclass', teacherAuth, async function(req, res){
 
     // get variables
-    const date       = new Date()
-
     const title      = req.body.title
     const students   = req.body.students
     const createdAt  = new Date().toString()
@@ -54,7 +33,8 @@ manageClass.post('/api/teacher/addclass', teacherAuth, async function(req, res){
 
 
     // check duplicate title
-    var same_title   = false
+    var duplicate_title = false
+
     await get(ref(db, 'class')).then((snap) => {
 
         const class_list = snap.val()
@@ -66,13 +46,13 @@ manageClass.post('/api/teacher/addclass', teacherAuth, async function(req, res){
 
             if (db_title == title && db_teacher == teacher){
 
-                same_title = true
+                duplicate_title = true
 
             }
         }
     })
 
-    if (same_title){
+    if (duplicate_title){
         res.status(400).send({
             "code"   : 400,
             "status" : "bad request",
@@ -89,9 +69,9 @@ manageClass.post('/api/teacher/addclass', teacherAuth, async function(req, res){
 
     // add new class
     value = {
-        "teacher"   : teacher,
         "createdAt" : createdAt,
         "students"  : students,
+        "teacher"   : teacher,
         "title"     : title
     }
 
@@ -154,7 +134,7 @@ manageClass.get('/api/teacher/listclass', teacherAuth, async function(req, res){
             "status" : "Not Found",
             "data"   : {
                 "message" : [
-                    "teacher dont have class"
+                    "teacher doesnt have class"
                 ]
             }
         })
@@ -187,7 +167,7 @@ manageClass.post('/api/teacher/updateclass/:title', teacherAuth, async function(
 
 
     // check duplicate title
-    var same_title         = false
+    var duplicate_title    = false
     await get(ref(db, 'class')).then((snap) => {
     
         const class_list = snap.val()
@@ -199,16 +179,16 @@ manageClass.post('/api/teacher/updateclass/:title', teacherAuth, async function(
     
             if (db_title == title_update && db_teacher == teacher){
 
-                same_title = true
+                duplicate_title = true
 
             }
         }
     })
     
-    if (same_title){
+    if (duplicate_title){
         res.status(400).send({
             "code"   : 400,
-            "status" : "bad request",
+            "status" : "Bad Request",
             "data"   : {
                 "message" : [
                     "find same title",
@@ -273,7 +253,7 @@ manageClass.post('/api/teacher/updateclass/:title', teacherAuth, async function(
             }
         }
     })
-
+    
     if (!found_title){
         res.status(404).send({
             "code"   : 404,
